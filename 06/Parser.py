@@ -33,12 +33,13 @@ class Parser(object):
         # strip comments
         self.cur_line += 1
         line = self.lines[self.cur_line]
-        print("cur line: ", line.rstrip())
+        # Debug
+        #print("cur line: ", line.rstrip())
         line = self._comment.sub('', line)
         if line == '\n':
             self.advance()
         else:
-            self.command = line.rstrip()
+            self.command = line.strip()
 
     def command_type(self):
         """Returns the type of the current command"""
@@ -74,7 +75,7 @@ class Parser(object):
         if not comp:
             print("No comp!")
             print(self.command)
-        return comp
+        return comp.strip()
 
     def jump(self):
         """Returns the jump mnemonic in the current C-command"""

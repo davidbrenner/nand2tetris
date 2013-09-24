@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # Author: David Brenner
 """Assembler for Hack nand2tetris computer"""
+# Assembler.py Hack_file.asm
+# Creates Hack_file.hack containing assembled machine code
 
 import sys
 import Parser
 import Code
-#import SymbolTable
+import SymbolTable
 
 class Assembler(object):
     """Assembler class"""
@@ -14,9 +16,29 @@ class Assembler(object):
         """Constructor"""
         self.in_file = in_file
         self.out_file = self._get_out_file(in_file)
+        self.symbol_table = SymbolTable.SymbolTable()
+        self.symbol_address = 16 # symbol addresses start at 16
 
     def assemble(self):
         """Assembles the code"""
+        self.first_pass()
+        self.second_pass()
+
+
+    def first_pass(self):
+        """First pass to construct symbol table"""
+        parser = Parser.Parser(self.in_file)
+        cur_address = 0
+        while parser.has_more_commands():
+            parser.advance()
+            if parser.command_type() == parser.A_COMMAND \
+                    or parser.command_type() == parser.C_COMMAND:
+                cur_address += 1
+            elif parser.command_type() == parser.L_COMMAND:
+                self.symbol_table.add_entry(parser.symbol(), cur_address)
+
+    def second_pass(self):
+        """Second pass does assembly"""
         parser = Parser.Parser(self.in_file)
         outf = open( self.out_file, 'w')
         code = Code.Code()
@@ -33,11 +55,15 @@ class Assembler(object):
         outf.close()
 
 
-    @staticmethod
-    def _get_address(symbol):
-        """Return symbol address (eventually lookup in SymbolTable)"""
+    def _get_address(self, symbol):
+        """Return symbol address"""
         if symbol.isdigit():
             return symbol
+        else:
+            if not self.symbol_table.contains(symbol):
+                self.symbol_table.add_entry(symbol, self.symbol_address)
+                self.symbol_address += 1
+            return self.symbol_table.get_address(symbol)
 
     @staticmethod
     def _get_out_file(in_file):
