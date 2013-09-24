@@ -40,4 +40,54 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+
+    // Decode instruction 
+    // 0b"i xx a cccccc ddd jjj"
+    // if i=1 then C-type else A-type
+    // A-type: xxv vvvv vvvv vvvv : v = 15-bit constant
+    // C-type: i  x  x  a  | c1 c2 c3 c4 | c5 c6 d1 d2 | d3 j1 j2 j3
+    // C-type: 15 14 13 12 | 11 10 9  8  | 7  6  5  4  | 3  2  1  0
+    // C-type:
+    //      acccccc = comp : defined in Figure 4.3
+    //      ddd = dest     : defined in Figure 4.4
+    //      jjj = jump     : defined in Figure 4.5
+
+    // cInstruction = instruction[15]
+    Not(in=instruction[15], out=aInstruction);
+
+    // DRegister control signals
+    And(a=instruction[15], b=instruction[4], out=loadDReg);
+    DRegister(in=ALUout, load=loadDReg, out=DRegOut);
+
+    // ARegister control signals
+    And(a=instruction[15], b=instruction[5], out=ALUtoA); // ALUtoA = cInstruction and dest to A-reg
+    Mux16(a=instruction, b=ALUout, sel=ALUtoA, out=ARegIn); // Mux connected to ARegister
+
+    Or(a=aInstruction, b=ALUtoA, out=loadAReg); // loadAReg = aInstruction or ALUtoA
+    ARegister(in=ARegIn, load=loadAReg, out=ARegOut, out[0..14]=addressM);
+
+    // A or M multiplexer
+    Mux16(a=ARegOut, b=inM, sel=instruction[12], out=ALUin);
+
+
+    // ALU control signals
+    ALU(x=DRegOut, y=ALUin, zx=instruction[11], nx=instruction[10], zy=instruction[9],
+        ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, out=outM, 
+        zr=ZRout, ng=NGout);
+
+    // Output for writing to memory
+    // NOTE: addressM is defined in ARegister definition and outM is in the ALU definition
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // Fetch insturction
+    And(a=ZRout, b=instruction[1], out=jeq); // jeq
+    And(a=NGout, b=instruction[2], out=jlt); // jlt
+    Or(a=ZRout, b=NGout, out=zeroOrNeg);
+    Not(in=zeroOrNeg, out=positive);
+    And(a=positive, b=instruction[0], out=jgt); // jgt
+    Or(a=jeq, b=jlt, out=jle);
+    Or(a=jle, b=jgt, out=jumpToA);
+    And(a=instruction[15], b=jumpToA, out=PCload);
+    Not(in=PCload, out=PCinc);
+    PC(in=ARegOut, inc=PCinc, load=PCload, reset=reset, out[0..14]=pc);
 }
