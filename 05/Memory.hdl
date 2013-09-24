@@ -28,4 +28,23 @@ CHIP Memory {
 
     PARTS:
     // Put your code here:
+
+    // Address space map:
+    // 0x0000 - 0x3fff: RAM (16K)
+    // 0x4000 - 0x5fff: screen memory map (8k)
+    // 0x6000         : keyboard memory map
+    // 0x6001 - 0xffff: invalid
+
+    // Address bits [15:12]
+    //0000 // ram start    [13:14] = 00, 01
+    //0100 // screen start [13:14] = 10
+    //0110 // keyboard     [13:14] = 11
+
+    // Address bits [14:13] select ram, screen, or keyboard
+    DMux4Way(in=load, sel=address[13..14], a=ram1, b=ram2, c=screen, d=kbd);
+    Or(a=ram1,b=ram2,out=ram);
+    RAM16K(in=in, load=ram, address=address[0..13], out=ramOut);
+    Screen(in=in, load=screen, address=address[0..12], out=screenOut);
+    Keyboard(out=kbdOut);
+    Mux4Way16(a=ramOut, b=ramOut, c=screenOut, d=kbdOut, sel=address[13..14], out=out);
 }
