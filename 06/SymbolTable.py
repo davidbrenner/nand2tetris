@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # Author: David Brenner
 """SymbolTable module for Hack nand2tetris computer"""
-
-#import sys
+# TODO: implement after testing of assembler w/o symbols is completed
 
 class SymbolTable(object):
     """SymbolTable  class"""
